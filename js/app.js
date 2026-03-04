@@ -49,23 +49,22 @@ function loadPage(pageName) {
     currentPage = pageName;
 
     document.querySelectorAll('.menu-item').forEach(item => {
-        item.classList.remove('active');
-        if (item.getAttribute('data-page') === pageName) {
-            item.classList.add('active');
-        }
+        item.classList.toggle('active', item.getAttribute('data-page') === pageName);
     });
 
     const pageConfig = pages[pageName];
-    if (pageConfig) {
-        document.getElementById('page-title').textContent = pageConfig.title;
-        const content = document.getElementById('page-content');
-        content.innerHTML = pageConfig.module.render();
+    if (!pageConfig) {
+        return;
+    }
 
-        if (pageName === 'data-management') {
-            setTimeout(() => {
-                DataManagement.renderTable();
-            }, 0);
-        }
+    document.getElementById('page-title').textContent = pageConfig.title;
+    const content = document.getElementById('page-content');
+    content.innerHTML = pageConfig.module.render();
+
+    if (pageName === 'data-management' && typeof DataManagement.renderTable === 'function') {
+        setTimeout(() => {
+            DataManagement.renderTable();
+        }, 0);
     }
 }
 
