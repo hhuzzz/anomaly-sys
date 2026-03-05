@@ -1,9 +1,14 @@
 const GeneralDetection = {
     selectedFiles: [],
+    sourceType: 'dataset',
+    datasetImages: [
+        { id: 'img-001', name: '001.png', url: 'img/ad/001.png', selected: false },
+        { id: 'img-002', name: '002.png', url: 'img/ad/002.png', selected: false }
+    ],
     records: [
         {
             id: 'GD-20260305-001',
-            imageName: 'bearing_shell_001.jpg',
+            imageName: '001.png',
             productType: '轴承外壳',
             lineName: '一号产线',
             threshold: 0.6,
@@ -12,12 +17,12 @@ const GeneralDetection = {
             sampleSaved: true,
             inferenceTimeMs: 241,
             detectedAt: '2026-03-05 09:12:30',
-            imageUrl: 'img/000000.jpg',
-            heatmapUrl: 'img/000010.jpg'
+            imageUrl: 'img/ad/001.png',
+            heatmapUrl: 'img/ad/001_mask.png'
         },
         {
             id: 'GD-20260305-002',
-            imageName: 'bearing_shell_002.jpg',
+            imageName: '002.png',
             productType: '轴承外壳',
             lineName: '一号产线',
             threshold: 0.6,
@@ -26,8 +31,8 @@ const GeneralDetection = {
             sampleSaved: false,
             inferenceTimeMs: 226,
             detectedAt: '2026-03-05 09:18:05',
-            imageUrl: 'img/000010.jpg',
-            heatmapUrl: 'img/000000.jpg'
+            imageUrl: 'img/ad/002.png',
+            heatmapUrl: 'img/ad/002_mask.png'
         }
     ],
     currentResult: null,
@@ -37,6 +42,7 @@ const GeneralDetection = {
         const fileSummary = this.selectedFiles.length
             ? `${this.selectedFiles.length} 张待检测图像`
             : '尚未选择图像';
+        const sourceType = this.sourceType || 'upload';
 
         return `
             <div class="card">
@@ -44,9 +50,8 @@ const GeneralDetection = {
                 <div class="card-body">
                     <div class="gd-hero">
                         <div>
-                            <div class="gd-eyebrow">Zero-shot Anomaly Detection</div>
                             <h3>通用异常检测</h3>
-                            <p>面向未知缺陷的初步筛选，输出异常得分、热力图，并按阈值自动沉淀疑似异常样本。</p>
+                            <p>面向未知缺陷的初步筛选，输出异常得分、检测图，并按阈值自动沉淀疑似异常样本。</p>
                         </div>
                         <div class="gd-hero-stats">
                             <div class="gd-stat">
@@ -73,9 +78,9 @@ const GeneralDetection = {
                         <div class="card-body">
                             <div class="form-group">
                                 <label>数据来源</label>
-                                <select class="form-control form-select" id="gd-source-type">
-                                    <option value="upload">本地上传</option>
-                                    <option value="dataset">从数据管理选择</option>
+                                <select class="form-control form-select" id="gd-source-type" onchange="GeneralDetection.handleSourceTypeChange(this.value)">
+                                    <option value="upload" ${sourceType === 'upload' ? 'selected' : ''}>本地上传</option>
+                                    <option value="dataset" ${sourceType === 'dataset' ? 'selected' : ''}>从数据管理选择</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -84,14 +89,6 @@ const GeneralDetection = {
                                     <option value="一号产线">一号产线</option>
                                     <option value="二号产线">二号产线</option>
                                     <option value="三号产线">三号产线</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label>工位</label>
-                                <select class="form-control form-select" id="gd-station-name">
-                                    <option value="表面检测工位">表面检测工位</option>
-                                    <option value="装配检测工位">装配检测工位</option>
-                                    <option value="末端复检工位">末端复检工位</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -105,9 +102,9 @@ const GeneralDetection = {
                             <div class="form-group">
                                 <label>模型选择</label>
                                 <select class="form-control form-select" id="gd-model-id">
-                                    <option value="zero-shot-anomaly-v1">Zero-shot Anomaly v1</option>
-                                    <option value="zero-shot-anomaly-v2">Zero-shot Anomaly v2</option>
-                                    <option value="industrial-foundation-zs">Industrial Foundation ZS</option>
+                                    <option value="zero-shot-anomaly-v1">FA-CLIP-MVTEC</option>
+                                    <option value="zero-shot-anomaly-v2">FA-CLIP-VISA</option>
+                                    <option value="industrial-foundation-zs">AnomalyCLIP</option>
                                 </select>
                             </div>
                             <div class="form-group">
@@ -130,20 +127,30 @@ const GeneralDetection = {
                             </div>
                             <div class="form-group">
                                 <label>待检测图像</label>
-                                <div class="upload-area" onclick="document.getElementById('gd-file-input').click()">
-                                    <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                        <polyline points="17 8 12 3 7 8"></polyline>
-                                        <line x1="12" y1="3" x2="12" y2="15"></line>
-                                    </svg>
-                                    <p>点击选择检测图像</p>
-                                    <input type="file" id="gd-file-input" accept="image/*" multiple style="display: none;" onchange="GeneralDetection.handleFileSelect(event)">
-                                </div>
-                                <div class="import-info">
-                                    <p class="info-text">${fileSummary}</p>
-                                    <p class="info-text">支持 JPG、PNG、BMP，建议单批次不超过 20 张</p>
-                                </div>
-                                ${this.renderFileList()}
+                                ${sourceType === 'upload' ? `
+                                    <div class="upload-area" onclick="document.getElementById('gd-file-input').click()">
+                                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                            <polyline points="17 8 12 3 7 8"></polyline>
+                                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                                        </svg>
+                                        <p>点击选择检测图像</p>
+                                        <input type="file" id="gd-file-input" accept="image/*" multiple style="display: none;" onchange="GeneralDetection.handleFileSelect(event)">
+                                    </div>
+                                    <div class="import-info">
+                                        <p class="info-text">${fileSummary}</p>
+                                        <p class="info-text">支持 JPG、PNG、BMP，建议单批次不超过 20 张</p>
+                                    </div>
+                                    ${this.renderFileList()}
+                                ` : `
+                                    <div class="dataset-grid">
+                                        ${this.renderDatasetImages()}
+                                    </div>
+                                    <div class="import-info">
+                                        <p class="info-text">${fileSummary}</p>
+                                        <p class="info-text">从数据管理中选择待检测图像，可多选</p>
+                                    </div>
+                                `}
                             </div>
                             <div class="btn-group">
                                 <button class="btn btn-primary" onclick="GeneralDetection.runDetection()">
@@ -169,10 +176,9 @@ const GeneralDetection = {
                                     </div>
                                 </div>
                                 <div class="gd-preview-card">
-                                    <div class="gd-preview-header">异常热力图</div>
-                                    <div class="gd-preview-frame gd-preview-frame-heatmap">
-                                        <img src="${currentResult.heatmapUrl}" alt="异常热力图">
-                                        <div class="gd-heatmap-mask"></div>
+                                    <div class="gd-preview-header">异常检测图</div>
+                                    <div class="gd-preview-frame">
+                                        <img src="${currentResult.heatmapUrl}" alt="异常检测图">
                                     </div>
                                 </div>
                             </div>
@@ -271,6 +277,21 @@ const GeneralDetection = {
         `;
     },
 
+    renderDatasetImages() {
+        console.log('renderDatasetImages called', this.datasetImages);
+        return this.datasetImages.map(img => `
+            <div class="dataset-item ${img.selected ? 'dataset-item-selected' : ''}" onclick="GeneralDetection.toggleDatasetImage('${img.id}')">
+                <img src="${img.url}" alt="${img.name}" onerror="console.error('Failed to load image:', '${img.url}')">
+                <div class="dataset-item-mask">
+                    <svg class="check-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                    </svg>
+                </div>
+                <span class="dataset-item-name">${img.name}</span>
+            </div>
+        `).join('');
+    },
+
     renderRecords(records) {
         if (!records.length) {
             return `
@@ -337,8 +358,35 @@ const GeneralDetection = {
         this.rerender();
     },
 
+    handleSourceTypeChange(value) {
+        this.sourceType = value;
+        this.selectedFiles = [];
+        this.datasetImages.forEach(img => img.selected = false);
+        this.rerender();
+    },
+
+    toggleDatasetImage(imageId) {
+        const img = this.datasetImages.find(item => item.id === imageId);
+        if (!img) {
+            return;
+        }
+
+        img.selected = !img.selected;
+
+        const selectedImages = this.datasetImages.filter(item => item.selected);
+        this.selectedFiles = selectedImages.map(img => ({
+            name: img.name,
+            url: img.url,
+            id: img.id
+        }));
+
+        this.rerender();
+    },
+
     resetForm() {
         this.selectedFiles = [];
+        this.sourceType = 'upload';
+        this.datasetImages.forEach(img => img.selected = false);
         this.currentResult = this.records[0];
         this.rerender();
         this.notify('已重置检测配置', 'info');
@@ -356,9 +404,16 @@ const GeneralDetection = {
         const latestFile = this.selectedFiles[0];
         const score = this.generateMockScore();
         const decision = score >= threshold ? 'suspected' : 'normal';
+
+        // 根据图像文件名匹配对应的mask文件
+        const imageName = latestFile.name || '001.png';
+        const imageNameWithoutExt = imageName.replace(/\.[^/.]+$/, '');
+        const imageUrl = latestFile.url || `img/ad/${imageName}`;
+        const heatmapUrl = `img/ad/${imageNameWithoutExt}_mask.png`;
+
         const record = {
             id: `GD-${Date.now()}`,
-            imageName: latestFile.name,
+            imageName,
             productType,
             lineName,
             threshold,
@@ -367,8 +422,8 @@ const GeneralDetection = {
             sampleSaved: decision === 'suspected',
             inferenceTimeMs: Math.floor(Math.random() * 90) + 180,
             detectedAt: this.formatDate(new Date()),
-            imageUrl: 'img/000000.jpg',
-            heatmapUrl: 'img/000010.jpg'
+            imageUrl,
+            heatmapUrl
         };
 
         this.records.unshift(record);
