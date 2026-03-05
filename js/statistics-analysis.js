@@ -1,105 +1,85 @@
 const StatisticsAnalysis = {
-    selectedLine: null, // 选中的产线
-    selectedProduct: null, // 选中的工业材料
-    timeRange: '7d', // 7d, 30d, 90d
+    selectedLine: '',
+    selectedProduct: '',
+    timeRange: '7d',
 
-    // 产线数据
-    productionLines: [
-        { id: 'line-1', name: '一号产线', total: 1580, defects: 98, defectRate: 6.20, accuracy: 93.2 },
-        { id: 'line-2', name: '二号产线', total: 1420, defects: 115, defectRate: 8.10, accuracy: 91.5 },
-        { id: 'line-3', name: '三号产线', total: 1890, defects: 128, defectRate: 6.77, accuracy: 94.3 }
-    ],
+    // 所有数值型信息统一放在这里，直接改数字即可生效
+    config: {
+        lines: ['一号产线', '二号产线'],
+        products: ['松树木材', '橡胶木材', '热轧带钢', '路面'],
 
-    // 工业材料数据
-    products: [
-        { id: 'rubber-wood', name: '橡胶木材', total: 1250, defects: 87, defectRate: 6.96, accuracy: 92.3 },
-        { id: 'pine-wood', name: '松树木材', total: 980, defects: 65, defectRate: 6.63, accuracy: 91.8 },
-        { id: 'hot-rolled-steel', name: '热轧带钢', total: 1560, defects: 124, defectRate: 7.95, accuracy: 93.5 },
-        { id: 'road', name: '路面', total: 2100, defects: 156, defectRate: 7.43, accuracy: 94.1 }
-    ],
+        // 统计明细基础数据（写死）
+        detailRows: [
+            { lineName: '一号产线', productType: '松树木材', sampleCount: 1380, abnormalCount: 96 },
+            { lineName: '一号产线', productType: '橡胶木材', sampleCount: 1520, abnormalCount: 122 },
+            { lineName: '一号产线', productType: '热轧带钢', sampleCount: 1680, abnormalCount: 134 },
+            { lineName: '一号产线', productType: '路面', sampleCount: 1420, abnormalCount: 88 },
+            { lineName: '二号产线', productType: '松树木材', sampleCount: 1460, abnormalCount: 105 },
+            { lineName: '二号产线', productType: '橡胶木材', sampleCount: 1590, abnormalCount: 129 },
+            { lineName: '二号产线', productType: '热轧带钢', sampleCount: 1740, abnormalCount: 149 },
+            { lineName: '二号产线', productType: '路面', sampleCount: 1510, abnormalCount: 97 }
+        ],
 
-    // 缺陷类型数据
-    defectTypes: [
-        { name: '活节', count: 112, percentage: 32.6, color: '#ff4d4f' },
-        { name: '死节', count: 98, percentage: 28.5, color: '#ff7a45' },
-        { name: '裂纹', count: 78, percentage: 22.7, color: '#ffa940' },
-        { name: '孔洞', count: 35, percentage: 10.2, color: '#73d13d' },
-        { name: '其他', count: 20, percentage: 5.8, color: '#722ed1' }
-    ],
+        // 按小时缺陷率趋势（写死）
+        hourlyDefectRate: {
+            default: {
+                '7d': [5.6, 6.2, 5.9, 6.8, 7.1, 6.7, 6.3, 7.4, 7.0, 6.5],
+                '30d': [6.1, 6.5, 6.3, 7.0, 7.4, 7.1, 6.8, 7.6, 7.3, 6.9],
+                '90d': [6.8, 7.1, 6.9, 7.5, 7.8, 7.4, 7.2, 8.0, 7.7, 7.3]
+            },
+            line: {
+                '一号产线': {
+                    '7d': [5.1, 5.8, 5.6, 6.3, 6.7, 6.1, 5.9, 6.8, 6.4, 6.0],
+                    '30d': [5.7, 6.1, 5.9, 6.6, 7.0, 6.5, 6.2, 7.1, 6.8, 6.3],
+                    '90d': [6.2, 6.6, 6.4, 7.0, 7.3, 6.9, 6.6, 7.5, 7.1, 6.8]
+                },
+                '二号产线': {
+                    '7d': [6.0, 6.7, 6.3, 7.2, 7.6, 7.2, 6.9, 7.9, 7.5, 7.0],
+                    '30d': [6.5, 7.1, 6.8, 7.6, 8.0, 7.6, 7.3, 8.2, 7.8, 7.4],
+                    '90d': [7.0, 7.5, 7.2, 8.0, 8.4, 8.0, 7.7, 8.6, 8.2, 7.8]
+                }
+            },
+            product: {
+                '橡胶木材': {
+                    '7d': [6.6, 7.1, 6.8, 7.4, 7.9, 7.6, 7.2, 8.0, 7.7, 7.3]
+                }
+            }
+        },
 
-    // 缺陷率趋势数据（最近7天）
-    defectRateTrend: [
-        { date: '02-27', rate: 7.2 },
-        { date: '02-28', rate: 6.8 },
-        { date: '03-01', rate: 7.5 },
-        { date: '03-02', rate: 6.5 },
-        { date: '03-03', rate: 7.1 },
-        { date: '03-04', rate: 6.9 },
-        { date: '03-05', rate: 7.3 }
-    ],
+        // 缺陷类型分布（写死计数）
+        defectDistribution: {
+            default: [
+                { name: '划痕', count: 286 },
+                { name: '凹陷', count: 219 },
+                { name: '裂纹', count: 174 },
+                { name: '污渍', count: 128 },
+                { name: '其他', count: 96 }
+            ],
+            product: {
+                '橡胶木材': [
+                    { name: '活节', count: 12 },
+                    { name: '死节', count: 28 },
+                    { name: '树芯', count: 42 },
+                    { name: '缺边', count: 33 },
+                    { name: '划痕', count: 7 }
+                ]
+            }
+        },
 
-    // 检测准确率趋势
-    accuracyTrend: [
-        { date: '02-27', accuracy: 91.5 },
-        { date: '02-28', accuracy: 92.0 },
-        { date: '03-01', accuracy: 92.8 },
-        { date: '03-02', accuracy: 92.5 },
-        { date: '03-03', accuracy: 93.2 },
-        { date: '03-04', accuracy: 93.8 },
-        { date: '03-05', rate: 94.1 }
-    ],
-
-    // 时段分布数据
-    timeDistribution: [
-        { period: '8:00-10:00', count: 185, defects: 15 },
-        { period: '10:00-12:00', count: 198, defects: 18 },
-        { period: '12:00-14:00', count: 156, defects: 12 },
-        { period: '14:00-16:00', count: 212, defects: 20 },
-        { period: '16:00-18:00', count: 178, defects: 14 }
-    ],
-
-    init() {
-        this.render();
+        hours: ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00']
     },
 
     render() {
-        const selectedLineData = this.selectedLine ? this.productionLines.find(l => l.id === this.selectedLine) : null;
-        const selectedProductData = this.selectedProduct ? this.products.find(p => p.id === this.selectedProduct) : null;
-
-        // 计算统计数据
-        let totalSamples = 0;
-        let totalDefects = 0;
-        let avgDefectRate = 0;
-        let avgAccuracy = 0;
-
-        if (this.selectedLine && this.selectedProduct) {
-            // 同时选择了产线和材料（模拟数据）
-            if (selectedLineData && selectedProductData) {
-                totalSamples = Math.floor((selectedLineData.total + selectedProductData.total) / 2);
-                totalDefects = Math.floor((selectedLineData.defects + selectedProductData.defects) / 2);
-            }
-        } else if (this.selectedLine && selectedLineData) {
-            // 只选择了产线
-            totalSamples = selectedLineData.total;
-            totalDefects = selectedLineData.defects;
-        } else if (this.selectedProduct && selectedProductData) {
-            // 只选择了材料
-            totalSamples = selectedProductData.total;
-            totalDefects = selectedProductData.defects;
-        } else {
-            // 没有选择，显示所有数据
-            totalSamples = this.productionLines.reduce((sum, item) => sum + item.total, 0);
-            totalDefects = this.productionLines.reduce((sum, item) => sum + item.defects, 0);
-        }
-
-        avgDefectRate = (totalDefects / totalSamples * 100).toFixed(2);
-        avgAccuracy = this.selectedLine ? selectedLineData.accuracy : this.selectedProduct ? selectedProductData.accuracy : 93.3;
+        const rows = this.getFilteredDetailRows();
+        const summary = this.buildSummary(rows);
+        const hourlyDefectTrend = this.getHourlyDefectTrend();
+        const defectTypeDistribution = this.getDefectDistribution();
 
         return `
             <div class="card">
-                <div class="card-header">
+                <div class="card-header sa-header">
                     <span>统计分析</span>
-                    <div class="analysis-controls">
+                    <div class="analysis-controls sa-controls">
                         <select class="form-control form-select" onchange="StatisticsAnalysis.changeTimeRange(this.value)">
                             <option value="7d" ${this.timeRange === '7d' ? 'selected' : ''}>最近7天</option>
                             <option value="30d" ${this.timeRange === '30d' ? 'selected' : ''}>最近30天</option>
@@ -108,203 +88,255 @@ const StatisticsAnalysis = {
                     </div>
                 </div>
                 <div class="card-body">
-                    <!-- 筛选区域 -->
-                    <div class="filter-section">
-                        <div class="filter-group filter-group-left">
-                            <label>按产线</label>
+                    <div class="sa-filter-row">
+                        <div class="form-group">
+                            <label>按产线筛选</label>
                             <select class="form-control form-select" onchange="StatisticsAnalysis.changeLine(this.value)">
                                 <option value="">全部产线</option>
-                                ${this.productionLines.map(line => `
-                                    <option value="${line.id}" ${this.selectedLine === line.id ? 'selected' : ''}>${line.name}</option>
-                                `).join('')}
+                                ${this.config.lines.map(line => `<option value="${line}" ${this.selectedLine === line ? 'selected' : ''}>${line}</option>`).join('')}
                             </select>
                         </div>
-                        <div class="filter-group filter-group-right">
-                            <label>按工业材料</label>
+                        <div class="form-group">
+                            <label>按产品型号筛选</label>
                             <select class="form-control form-select" onchange="StatisticsAnalysis.changeProduct(this.value)">
-                                <option value="">全部材料</option>
-                                ${this.products.map(product => `
-                                    <option value="${product.id}" ${this.selectedProduct === product.id ? 'selected' : ''}>${product.name}</option>
-                                `).join('')}
+                                <option value="">全部型号</option>
+                                ${this.config.products.map(product => `<option value="${product}" ${this.selectedProduct === product ? 'selected' : ''}>${product}</option>`).join('')}
                             </select>
                         </div>
-                    </div>
-
-                    <!-- 统计概览 -->
-                    <div class="stats-overview">
-                        <div class="stat-card stat-card-primary">
-                            <div class="stat-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
-                                    <polyline points="21 15 16 10 5 21"></polyline>
-                                </svg>
-                            </div>
-                            <div class="stat-content">
-                                <div class="stat-value">${totalSamples}</div>
-                                <div class="stat-label">检测样本总数</div>
-                            </div>
-                        </div>
-                        <div class="stat-card stat-card-danger">
-                            <div class="stat-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"></circle>
-                                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                                </svg>
-                            </div>
-                            <div class="stat-content">
-                                <div class="stat-value">${totalDefects}</div>
-                                <div class="stat-label">缺陷总数</div>
-                            </div>
-                        </div>
-                        <div class="stat-card stat-card-warning">
-                            <div class="stat-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
-                                </svg>
-                            </div>
-                            <div class="stat-content">
-                                <div class="stat-value">${avgDefectRate}%</div>
-                                <div class="stat-label">平均缺陷率</div>
-                            </div>
-                        </div>
-                        <div class="stat-card stat-card-success">
-                            <div class="stat-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                                </svg>
-                            </div>
-                            <div class="stat-content">
-                                <div class="stat-value">${avgAccuracy}%</div>
-                                <div class="stat-label">平均准确率</div>
-                            </div>
+                        <div class="form-group sa-reset-wrap">
+                            <button class="btn btn-default" onclick="StatisticsAnalysis.resetFilters()">重置筛选</button>
                         </div>
                     </div>
 
-                    <!-- 图表区域 -->
-                    <div class="charts-grid">
-                        <!-- 缺陷率趋势图 -->
-                        <div class="chart-card chart-card-full">
-                            <div class="chart-header">
-                                <h3>缺陷率变化趋势</h3>
-                            </div>
-                            <div class="chart-body">
-                                <div class="line-chart">
-                                    ${this.renderLineChart(this.defectRateTrend, '缺陷率', '#ff4d4f')}
-                                </div>
-                            </div>
+                    <div class="sa-kpi-grid">
+                        <div class="sa-kpi-card">
+                            <span>检测样本总数</span>
+                            <strong>${summary.totalSamples}</strong>
                         </div>
-
-                        <!-- 检测准确率趋势图 -->
-                        <div class="chart-card chart-card-full">
-                            <div class="chart-header">
-                                <h3>检测准确率趋势</h3>
-                            </div>
-                            <div class="chart-body">
-                                <div class="line-chart">
-                                    ${this.renderLineChart(this.accuracyTrend, '准确率', '#52c41a')}
-                                </div>
-                            </div>
+                        <div class="sa-kpi-card">
+                            <span>异常样本数</span>
+                            <strong>${summary.totalDefects}</strong>
                         </div>
-
-                        <!-- 缺陷类型分布图 -->
-                        <div class="chart-card">
-                            <div class="chart-header">
-                                <h3>缺陷类型分布</h3>
-                            </div>
-                            <div class="chart-body">
-                                <div class="pie-chart">
-                                    ${this.renderPieChart(this.defectTypes)}
-                                </div>
-                            </div>
+                        <div class="sa-kpi-card">
+                            <span>缺陷率</span>
+                            <strong>${summary.defectRate}%</strong>
                         </div>
                     </div>
 
-                    <!-- 详细数据表格 -->
+                    <div class="sa-chart-grid sa-chart-grid-bottom">
+                        <div class="sa-chart-card">
+                            <div class="sa-chart-title">缺陷率变化趋势</div>
+                            ${this.renderLineChart(hourlyDefectTrend, '#ff4d4f', '%')}
+                        </div>
+                        <div class="sa-chart-card">
+                            <div class="sa-chart-title">缺陷类型分布</div>
+                            ${this.renderDonutChart(defectTypeDistribution)}
+                        </div>
+                    </div>
+
                     <div class="data-table-section">
                         <div class="section-header">
-                            <h3>详细统计数据</h3>
+                            <h3>统计明细</h3>
                         </div>
                         <div class="table-container">
-                            ${this.selectedLine || this.selectedProduct ? `
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>项目名称</th>
-                                            <th>检测样本数</th>
-                                            <th>缺陷数</th>
-                                            <th>缺陷率</th>
-                                            <th>检测准确率</th>
-                                            <th>状态</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${this.selectedLineData ? `
-                                            <tr>
-                                                <td><strong>${selectedLineData.name}</strong></td>
-                                                <td>${selectedLineData.total.toLocaleString()}</td>
-                                                <td>${selectedLineData.defects}</td>
-                                                <td><span class="rate-badge ${selectedLineData.defectRate > 7 ? 'rate-high' : selectedLineData.defectRate > 6 ? 'rate-medium' : 'rate-low'}">${selectedLineData.defectRate}%</span></td>
-                                                <td>${selectedLineData.accuracy}%</td>
-                                                <td>
-                                                    <span class="status-indicator ${selectedLineData.accuracy >= 93 ? 'status-good' : selectedLineData.accuracy >= 91 ? 'status-normal' : 'status-poor'}">
-                                                        ${selectedLineData.accuracy >= 93 ? '优秀' : selectedLineData.accuracy >= 91 ? '良好' : '一般'}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ` : ''}
-                                        ${this.selectedProductData ? `
-                                            <tr>
-                                                <td><strong>${selectedProductData.name}</strong></td>
-                                                <td>${selectedProductData.total.toLocaleString()}</td>
-                                                <td>${selectedProductData.defects}</td>
-                                                <td><span class="rate-badge ${selectedProductData.defectRate > 7 ? 'rate-high' : selectedProductData.defectRate > 6 ? 'rate-medium' : 'rate-low'}">${selectedProductData.defectRate}%</span></td>
-                                                <td>${selectedProductData.accuracy}%</td>
-                                                <td>
-                                                    <span class="status-indicator ${selectedProductData.accuracy >= 93 ? 'status-good' : selectedProductData.accuracy >= 91 ? 'status-normal' : 'status-poor'}">
-                                                        ${selectedProductData.accuracy >= 93 ? '优秀' : selectedProductData.accuracy >= 91 ? '良好' : '一般'}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        ` : ''}
-                                    </tbody>
-                                </table>
-                            ` : `
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>产线名称</th>
-                                            <th>检测样本数</th>
-                                            <th>缺陷数</th>
-                                            <th>缺陷率</th>
-                                            <th>检测准确率</th>
-                                            <th>状态</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        ${this.productionLines.map(item => `
-                                            <tr>
-                                                <td><strong>${item.name}</strong></td>
-                                                <td>${item.total.toLocaleString()}</td>
-                                                <td>${item.defects}</td>
-                                                <td><span class="rate-badge ${item.defectRate > 7 ? 'rate-high' : item.defectRate > 6 ? 'rate-medium' : 'rate-low'}">${item.defectRate}%</span></td>
-                                                <td>${item.accuracy}%</td>
-                                                <td>
-                                                    <span class="status-indicator ${item.accuracy >= 93 ? 'status-good' : item.accuracy >= 91 ? 'status-normal' : 'status-poor'}">
-                                                        ${item.accuracy >= 93 ? '优秀' : item.accuracy >= 91 ? '良好' : '一般'}
-                                                    </span>
-                                                </td>
-                                            </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
-                            `}
+                            <table class="data-table sa-detail-table">
+                                <thead>
+                                    <tr>
+                                        <th>产线</th>
+                                        <th>产品型号</th>
+                                        <th>样本数</th>
+                                        <th>异常样本数</th>
+                                        <th>缺陷率</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${this.renderDetailRows(rows)}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
             </div>
         `;
+    },
+
+    getFilteredDetailRows() {
+        return this.config.detailRows.filter(row => {
+            const matchLine = !this.selectedLine || row.lineName === this.selectedLine;
+            const matchProduct = !this.selectedProduct || row.productType === this.selectedProduct;
+            return matchLine && matchProduct;
+        });
+    },
+
+    buildSummary(rows) {
+        if (!rows.length) {
+            return { totalSamples: 0, totalDefects: 0, defectRate: '0.00' };
+        }
+
+        const totalSamples = rows.reduce((sum, row) => sum + row.sampleCount, 0);
+        const totalDefects = rows.reduce((sum, row) => sum + row.abnormalCount, 0);
+        const defectRate = totalSamples ? (totalDefects / totalSamples) * 100 : 0;
+
+        return {
+            totalSamples,
+            totalDefects,
+            defectRate: defectRate.toFixed(2)
+        };
+    },
+
+    getHourlyDefectTrend() {
+        const labels = this.config.hours;
+        const productSeries = this.selectedProduct && this.config.hourlyDefectRate.product[this.selectedProduct];
+        const lineSeries = this.selectedLine && this.config.hourlyDefectRate.line[this.selectedLine];
+        const values =
+            (productSeries && productSeries[this.timeRange]) ||
+            (lineSeries && lineSeries[this.timeRange]) ||
+            this.config.hourlyDefectRate.default[this.timeRange] ||
+            this.config.hourlyDefectRate.default['7d'];
+
+        return labels.map((label, idx) => ({ label, value: values[idx] ?? 0 }));
+    },
+
+    getDefectDistribution() {
+        const source =
+            (this.selectedProduct && this.config.defectDistribution.product[this.selectedProduct]) ||
+            this.config.defectDistribution.default;
+
+        const palette = ['#ff4d4f', '#fa8c16', '#13c2c2', '#2f54eb', '#722ed1', '#52c41a'];
+        const total = source.reduce((sum, item) => sum + item.count, 0) || 1;
+        return source.map((item, idx) => ({
+            name: item.name,
+            count: item.count,
+            percent: ((item.count / total) * 100).toFixed(1),
+            color: palette[idx % palette.length]
+        }));
+    },
+
+    renderLineChart(data, color, unit) {
+        if (!data.length) {
+            return '<div class="empty-state" style="padding: 36px 0;">无可展示数据</div>';
+        }
+
+        const width = 640;
+        const height = 220;
+        const left = 44;
+        const right = 24;
+        const top = 24;
+        const bottom = 44;
+        const innerW = width - left - right;
+        const innerH = height - top - bottom;
+        const maxValue = Math.max(...data.map(item => item.value), 1);
+        const minValue = Math.min(...data.map(item => item.value), 0);
+        const span = Math.max(maxValue - minValue, 1);
+        const yTicks = 4;
+
+        const points = data.map((item, index) => {
+            const x = left + (innerW / Math.max(data.length - 1, 1)) * index;
+            const y = top + innerH - ((item.value - minValue) / span) * innerH;
+            return { ...item, x, y };
+        });
+        const linePath = points.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(' ');
+
+        return `
+            <svg class="sa-line-svg" viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+                ${Array.from({ length: yTicks + 1 }).map((_, i) => {
+                    const y = top + (innerH / yTicks) * i;
+                    return `<line x1="${left}" y1="${y}" x2="${width - right}" y2="${y}" stroke="#edf2f7" stroke-dasharray="4 4"></line>`;
+                }).join('')}
+                <line x1="${left}" y1="${top + innerH}" x2="${width - right}" y2="${top + innerH}" stroke="#e8e8e8"></line>
+                <path d="${linePath}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
+                ${points.map(point => `<circle cx="${point.x}" cy="${point.y}" r="4" fill="${color}"></circle>`).join('')}
+                ${points.map(point => `<text x="${point.x}" y="${height - 16}" text-anchor="middle" class="sa-axis-text">${point.label}</text>`).join('')}
+                ${points.map(point => `<text x="${point.x}" y="${point.y - 10}" text-anchor="middle" class="sa-point-text">${point.value}${unit}</text>`).join('')}
+            </svg>
+        `;
+    },
+
+    renderDonutChart(items) {
+        const total = items.reduce((sum, item) => sum + item.count, 0) || 1;
+        let offset = 0;
+        const gradient = items.map(item => {
+            const start = ((offset / total) * 100).toFixed(2);
+            offset += item.count;
+            const end = ((offset / total) * 100).toFixed(2);
+            return `${item.color} ${start}% ${end}%`;
+        }).join(', ');
+
+        return `
+            <div class="sa-donut-wrap">
+                <div class="sa-donut" style="background: conic-gradient(${gradient});">
+                    <div class="sa-donut-center">
+                        <strong>${total}</strong>
+                        <span>samples</span>
+                    </div>
+                </div>
+                <div class="sa-legend">
+                    ${items.map(item => `
+                        <div class="sa-legend-item">
+                            <span class="sa-legend-dot" style="background:${item.color}"></span>
+                            <span class="sa-legend-name">${item.name}</span>
+                            <span class="sa-legend-value">${item.count} (${item.percent}%)</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    },
+
+    renderDetailRows(rows) {
+        if (!rows.length) {
+            return `
+                <tr>
+                    <td colspan="5">
+                        <div class="empty-state" style="padding: 32px 0;">当前筛选条件下无数据</div>
+                    </td>
+                </tr>
+            `;
+        }
+
+        return [...rows]
+            .sort((a, b) => b.sampleCount - a.sampleCount)
+            .map(row => {
+                const defectRate = row.sampleCount ? ((row.abnormalCount / row.sampleCount) * 100).toFixed(2) : '0.00';
+                return `
+                    <tr>
+                        <td>${row.lineName}</td>
+                        <td>${row.productType}</td>
+                        <td>${row.sampleCount}</td>
+                        <td>${row.abnormalCount}</td>
+                        <td><span class="rate-badge ${Number(defectRate) > 12 ? 'rate-high' : Number(defectRate) > 7 ? 'rate-medium' : 'rate-low'}">${defectRate}%</span></td>
+                    </tr>
+                `;
+            })
+            .join('');
+    },
+
+    changeTimeRange(value) {
+        this.timeRange = value;
+        this.rerender();
+    },
+
+    changeLine(value) {
+        this.selectedLine = value;
+        this.rerender();
+    },
+
+    changeProduct(value) {
+        this.selectedProduct = value;
+        this.rerender();
+    },
+
+    resetFilters() {
+        this.selectedLine = '';
+        this.selectedProduct = '';
+        this.timeRange = '7d';
+        this.rerender();
+    },
+
+    rerender() {
+        const content = document.getElementById('page-content');
+        if (content) {
+            content.innerHTML = this.render();
+        }
     }
-}
+};
